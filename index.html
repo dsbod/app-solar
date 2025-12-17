@@ -3,116 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SolarCot – Cotação</title>
+  <title>Formulário de Cotação – Energia Solar</title>
 
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="SolarCot">
-  <link rel="apple-touch-icon" href="icone.png">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 15px;
-      margin: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-      color: #555;
-    }
-    input[type="text"], input[type="date"], input[type="file"] {
-      width: 100%;
-      padding: 12px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 16px; /* Evita zoom automático no iPhone */
-    }
-    .radio-group {
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #333; }
+    label { display: block; margin-top: 12px; font-weight: bold; color: #555; }
+    input[type="text"], input[type="date"], input[type="file"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    
+    .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; margin-top: 5px; }
+    
+    /* Estilo da Moldura de Enquadramento */
+    .moldura-container {
+      position: relative;
       margin-top: 10px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      border: 2px dashed #25D366; /* Moldura Verde */
+      border-radius: 8px;
+      overflow: hidden;
+      display: none; /* Escondido até ter foto */
+      background: #eee;
     }
-    .radio-group label {
-      display: flex;
-      align-items: center;
-      margin: 0;
-      font-weight: normal;
-      background: #f9f9f9;
-      padding: 8px 12px;
-      border: 1px solid #eee;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .radio-group input {
-      margin-right: 8px;
-    }
-    button {
+    .preview-img {
       width: 100%;
-      padding: 15px;
-      margin-top: 25px;
-      font-size: 18px;
-      background: #25D366;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s;
+      display: block;
+      object-fit: cover; /* Corta bordas extras para preencher a moldura */
+      max-height: 300px;
     }
-    button:hover {
-      background: #1eb954;
-    }
-    #preview {
-      margin-top: 15px;
-      max-width: 100%;
-      border-radius: 8px;
-      display: none;
-      border: 1px solid #ddd;
-    }
-    /* Estilo Invisível de Impressão */
-    #area-impressao {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-        width: 595px;
-        background: #fff;
-        padding: 40px;
-    }
-    #area-impressao h2 { border-bottom: 3px solid #25D366; padding-bottom: 10px; }
-    #area-impressao p { font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    #area-impressao img { max-width: 400px; margin-top: 20px; }
+
+    button { width: 100%; padding: 15px; margin-top: 20px; font-size: 16px; background: #25D366; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:hover { opacity: 0.9; }
+
+    /* Área de Impressão Oculta */
+    #area-impressao { position: absolute; top: -9999px; left: -9999px; width: 595px; background: #fff; padding: 40px; }
+    #area-impressao h2 { border-bottom: 2px solid #25D366; padding-bottom: 10px; }
+    #area-impressao p { font-size: 14px; border-bottom: 1px solid #eee; padding: 5px 0; }
+    .img-pdf { width: 100%; max-height: 400px; object-fit: contain; margin-top: 10px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
 
 <div class="container" id="formulario">
-  <h2>Cotação Energia Solar</h2>
+  <h2>Dados para Cotação</h2>
 
   <label>Nome completo</label>
-  <input type="text" id="nome" placeholder="Digite seu nome" />
+  <input type="text" id="nome" />
 
   <label>Data de nascimento</label>
   <input type="date" id="nascimento" />
@@ -124,107 +67,116 @@
   <input type="text" id="rg" />
 
   <label>Endereço completo</label>
-  <input type="text" id="endereco" placeholder="Rua, número, cidade..." />
+  <input type="text" id="endereco" />
 
-  <label>Número da Unidade Consumidora (UC)</label>
+  <label>Número da unidade consumidora (UC)</label>
   <input type="text" id="uc" />
 
   <label>Potência estimada (kWp)</label>
   <input type="text" id="potencia" />
 
-  <label>Precisa de financiamento?</label>
-  <div class="radio-group">
-      <label><input type="radio" name="financiamento" value="Sim" /> Sim</label>
-      <label><input type="radio" name="financiamento" value="Não" /> Não</label>
-  </div>
-
   <label>Tipo de telhado</label>
   <div class="radio-group">
       <label><input type="radio" name="telhado" value="Zinco" /> Zinco</label>
       <label><input type="radio" name="telhado" value="Cerâmico" /> Cerâmico</label>
-      <label><input type="radio" name="telhado" value="Telhão" /> Telhão</label>
       <label><input type="radio" name="telhado" value="Solo" /> Solo</label>
   </div>
 
-  <label>Foto da conta de energia</label>
-  <input type="file" id="foto" accept="image/*" capture="environment" />
-  <img id="preview" alt="Preview da conta" />
+  <hr style="margin-top:20px opacity:0.2">
 
-  <button onclick="gerarPDF()">GERAR PDF E COMPARTILHAR</button>
+  <label>📸 Foto da Conta de Energia</label>
+  <input type="file" id="fotoConta" accept="image/*" capture="environment" />
+  <div id="molduraConta" class="moldura-container">
+    <img id="prevConta" class="preview-img" />
+  </div>
+
+  <label>🪪 Foto do Documento (RG/CNH)</label>
+  <input type="file" id="fotoDoc" accept="image/*" capture="environment" />
+  <div id="molduraDoc" class="moldura-container">
+    <img id="prevDoc" class="preview-img" />
+  </div>
+
+  <button onclick="gerarPDF()">Gerar e Compartilhar PDF</button>
 </div>
 
 <script>
-  // Registro do Service Worker para PWA
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+  // Função para processar a visualização das fotos
+  function configurarPreview(inputId, imgId, molduraId) {
+    const input = document.getElementById(inputId);
+    const img = document.getElementById(imgId);
+    const moldura = document.getElementById(molduraId);
+
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.src = e.target.result;
+          moldura.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
   }
 
-  const fotoInput = document.getElementById('foto');
-  const preview = document.getElementById('preview');
-
-  fotoInput.addEventListener('change', () => {
-    const file = fotoInput.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        preview.src = reader.result;
-        preview.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+  configurarPreview('fotoConta', 'prevConta', 'molduraConta');
+  configurarPreview('fotoDoc', 'prevDoc', 'molduraDoc');
 
   async function gerarPDF() {
     const divPrint = document.createElement('div');
     divPrint.id = 'area-impressao';
-    let conteudoHTML = `<h2>Solicitação de Cotação Solar</h2>`;
+    
+    let conteudoHTML = `<h2>Relatório de Cotação Solar</h2>`;
 
-    function adicionarCampo(label, valor) {
-        if (valor && valor.trim() !== "") {
-            conteudoHTML += `<p><strong>${label}:</strong> ${valor}</p>`;
-        }
+    function add(label, valor) {
+        if (valor) conteudoHTML += `<p><strong>${label}:</strong> ${valor}</p>`;
     }
 
-    adicionarCampo("Nome", document.getElementById('nome').value);
-    const dataNasc = document.getElementById('nascimento').value;
-    if(dataNasc) {
-        adicionarCampo("Data de Nascimento", dataNasc.split('-').reverse().join('/'));
+    add("Nome", document.getElementById('nome').value);
+    add("CPF", document.getElementById('cpf').value);
+    add("Endereço", document.getElementById('endereco').value);
+    add("UC", document.getElementById('uc').value);
+
+    const telhado = document.querySelector('input[name="telhado"]:checked');
+    if (telhado) add("Telhado", telhado.value);
+
+    // Adicionar Foto da Conta
+    const imgConta = document.getElementById('prevConta');
+    if (imgConta.src) {
+        conteudoHTML += `<p><strong>Conta de Energia:</strong></p>`;
+        conteudoHTML += `<img src="${imgConta.src}" class="img-pdf" />`;
     }
-    adicionarCampo("CPF", document.getElementById('cpf').value);
-    adicionarCampo("RG", document.getElementById('rg').value);
-    adicionarCampo("Endereço", document.getElementById('endereco').value);
-    adicionarCampo("UC", document.getElementById('uc').value);
-    adicionarCampo("Potência", document.getElementById('potencia').value);
 
-    const fin = document.querySelector('input[name="financiamento"]:checked');
-    if (fin) adicionarCampo("Financiamento", fin.value);
-
-    const tel = document.querySelector('input[name="telhado"]:checked');
-    if (tel) adicionarCampo("Telhado", tel.value);
-
-    if (preview.src && preview.src.startsWith('data:image')) {
-        conteudoHTML += `<p><strong>Foto da Conta:</strong></p><img src="${preview.src}" />`;
+    // Adicionar Foto do Documento
+    const imgDoc = document.getElementById('prevDoc');
+    if (imgDoc.src) {
+        conteudoHTML += `<p><strong>Documento de Identificação:</strong></p>`;
+        conteudoHTML += `<img src="${imgDoc.src}" class="img-pdf" />`;
     }
 
     divPrint.innerHTML = conteudoHTML;
     document.body.appendChild(divPrint);
 
     try {
-        window.scrollTo(0,0);
-        const canvas = await html2canvas(divPrint, { scale: 2, backgroundColor: "#ffffff" });
+        const canvas = await html2canvas(divPrint, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const larguraPagina = pdf.internal.pageSize.getWidth();
-        const alturaImagem = (canvas.height * larguraPagina) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, larguraPagina, alturaImagem);
-        pdf.save('cotacao.pdf');
+        const alturaImg = (canvas.height * larguraPagina) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, larguraPagina, alturaImg);
+        pdf.save('cotacao_completa.pdf');
     } catch (err) {
         alert('Erro ao gerar PDF');
     } finally {
         document.body.removeChild(divPrint);
     }
+  }
+
+  // Registrar Service Worker para PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
   }
 </script>
 
