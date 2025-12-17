@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Formulário de Cotação – Energia Solar</title>
+  <title>SolarCot – Cotação</title>
 
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SolarCot">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3022/3022215.png">
+  <link rel="apple-touch-icon" href="icone.png">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,15 +18,16 @@
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f4;
-      padding: 20px;
+      padding: 15px;
+      margin: 0;
     }
     .container {
       max-width: 600px;
       margin: auto;
       background: #fff;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     h2 {
       text-align: center;
@@ -35,49 +36,63 @@
     }
     label {
       display: block;
-      margin-top: 12px;
+      margin-top: 15px;
       font-weight: bold;
       color: #555;
     }
-    input[type="text"], input[type="date"] {
+    input[type="text"], input[type="date"], input[type="file"] {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 5px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      border-radius: 6px;
       box-sizing: border-box;
+      font-size: 16px; /* Evita zoom automático no iPhone */
+    }
+    .radio-group {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .radio-group label {
-        display: inline-block;
-        margin-right: 15px;
-        font-weight: normal;
-        margin-top: 5px;
+      display: flex;
+      align-items: center;
+      margin: 0;
+      font-weight: normal;
+      background: #f9f9f9;
+      padding: 8px 12px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .radio-group input {
+      margin-right: 8px;
     }
     button {
       width: 100%;
-      padding: 12px;
-      margin-top: 20px;
-      font-size: 16px;
+      padding: 15px;
+      margin-top: 25px;
+      font-size: 18px;
       background: #25D366;
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: bold;
+      transition: background 0.3s;
     }
     button:hover {
-      opacity: 0.9;
+      background: #1eb954;
     }
-    img {
-      margin-top: 10px;
+    #preview {
+      margin-top: 15px;
       max-width: 100%;
-      border-radius: 4px;
+      border-radius: 8px;
       display: none;
+      border: 1px solid #ddd;
     }
-    img[src] {
-      display: block;
-      border: 1px solid #ccc;
-    }
+    /* Estilo Invisível de Impressão */
     #area-impressao {
         position: absolute;
         top: -9999px;
@@ -85,18 +100,16 @@
         width: 595px;
         background: #fff;
         padding: 40px;
-        font-family: Arial, sans-serif;
     }
-    #area-impressao h2 { margin-bottom: 30px; border-bottom: 2px solid #25D366; padding-bottom: 10px; }
-    #area-impressao p { font-size: 14px; margin-bottom: 10px; line-height: 1.5; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    #area-impressao strong { color: #333; }
-    #area-impressao img { max-width: 300px; margin-top: 20px; display: block; }
+    #area-impressao h2 { border-bottom: 3px solid #25D366; padding-bottom: 10px; }
+    #area-impressao p { font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    #area-impressao img { max-width: 400px; margin-top: 20px; }
   </style>
 </head>
 <body>
 
 <div class="container" id="formulario">
-  <h2>Dados para Cotação de Energia Solar</h2>
+  <h2>Cotação Energia Solar</h2>
 
   <label>Nome completo</label>
   <input type="text" id="nome" placeholder="Digite seu nome" />
@@ -113,13 +126,13 @@
   <label>Endereço completo</label>
   <input type="text" id="endereco" placeholder="Rua, número, cidade..." />
 
-  <label>Número da unidade consumidora</label>
+  <label>Número da Unidade Consumidora (UC)</label>
   <input type="text" id="uc" />
 
-  <label>Potência estimada do sistema (kWp)</label>
+  <label>Potência estimada (kWp)</label>
   <input type="text" id="potencia" />
 
-  <label>Preferência de financiamento?</label>
+  <label>Precisa de financiamento?</label>
   <div class="radio-group">
       <label><input type="radio" name="financiamento" value="Sim" /> Sim</label>
       <label><input type="radio" name="financiamento" value="Não" /> Não</label>
@@ -135,19 +148,15 @@
 
   <label>Foto da conta de energia</label>
   <input type="file" id="foto" accept="image/*" capture="environment" />
-  <img id="preview" />
+  <img id="preview" alt="Preview da conta" />
 
-  <button onclick="gerarPDF()">Compartilhar como PDF</button>
+  <button onclick="gerarPDF()">GERAR PDF E COMPARTILHAR</button>
 </div>
 
 <script>
-  // Registro do Service Worker para permitir instalação como App
+  // Registro do Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(function() {
-      console.log('Service Worker registrado com sucesso.');
-    }).catch(function(erro) {
-      console.log('Falha ao registrar o Service Worker:', erro);
-    });
+    navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
   }
 
   const fotoInput = document.getElementById('foto');
@@ -157,7 +166,10 @@
     const file = fotoInput.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => preview.src = reader.result;
+      reader.onload = () => {
+        preview.src = reader.result;
+        preview.style.display = 'block';
+      };
       reader.readAsDataURL(file);
     }
   });
@@ -165,7 +177,7 @@
   async function gerarPDF() {
     const divPrint = document.createElement('div');
     divPrint.id = 'area-impressao';
-    let conteudoHTML = `<h2>Solicitação de Cotação</h2>`;
+    let conteudoHTML = `<h2>Solicitação de Cotação Solar</h2>`;
 
     function adicionarCampo(label, valor) {
         if (valor && valor.trim() !== "") {
@@ -176,46 +188,40 @@
     adicionarCampo("Nome", document.getElementById('nome').value);
     const dataNasc = document.getElementById('nascimento').value;
     if(dataNasc) {
-        const dataFormatada = dataNasc.split('-').reverse().join('/');
-        adicionarCampo("Data de Nascimento", dataFormatada);
+        adicionarCampo("Data de Nascimento", dataNasc.split('-').reverse().join('/'));
     }
     adicionarCampo("CPF", document.getElementById('cpf').value);
     adicionarCampo("RG", document.getElementById('rg').value);
     adicionarCampo("Endereço", document.getElementById('endereco').value);
-    adicionarCampo("Unidade Consumidora", document.getElementById('uc').value);
-    adicionarCampo("Potência Estimada", document.getElementById('potencia').value);
+    adicionarCampo("UC", document.getElementById('uc').value);
+    adicionarCampo("Potência", document.getElementById('potencia').value);
 
-    const finCheck = document.querySelector('input[name="financiamento"]:checked');
-    if (finCheck) adicionarCampo("Financiamento", finCheck.value);
+    const fin = document.querySelector('input[name="financiamento"]:checked');
+    if (fin) adicionarCampo("Financiamento", fin.value);
 
-    const telhadoCheck = document.querySelector('input[name="telhado"]:checked');
-    if (telhadoCheck) adicionarCampo("Tipo de Telhado", telhadoCheck.value);
+    const tel = document.querySelector('input[name="telhado"]:checked');
+    if (tel) adicionarCampo("Telhado", tel.value);
 
-    if (preview.src && preview.src !== window.location.href) {
-        conteudoHTML += `<p><strong>Conta de Energia:</strong></p>`;
-        conteudoHTML += `<img src="${preview.src}" />`;
+    if (preview.src && preview.src.startsWith('data:image')) {
+        conteudoHTML += `<p><strong>Foto da Conta:</strong></p><img src="${preview.src}" />`;
     }
 
     divPrint.innerHTML = conteudoHTML;
     document.body.appendChild(divPrint);
 
     try {
-        window.scrollTo(0,0); 
-        const canvas = await html2canvas(divPrint, { 
-            scale: 2,
-            backgroundColor: "#ffffff"
-        });
+        window.scrollTo(0,0);
+        const canvas = await html2canvas(divPrint, { scale: 2, backgroundColor: "#ffffff" });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const larguraPagina = pdf.internal.pageSize.getWidth();
         const alturaImagem = (canvas.height * larguraPagina) / canvas.width;
+        
         pdf.addImage(imgData, 'PNG', 0, 0, larguraPagina, alturaImagem);
-        pdf.save('cotacao_solar_preenchida.pdf');
-        alert('PDF gerado com sucesso!');
+        pdf.save('cotacao.pdf');
     } catch (err) {
-        console.error(err);
-        alert('Erro ao gerar o PDF.');
+        alert('Erro ao gerar PDF');
     } finally {
         document.body.removeChild(divPrint);
     }
