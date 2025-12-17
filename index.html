@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Formulário de Cotação – Energia Solar</title>
+  <title>SolarCot – App de Cotação</title>
 
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="SolarCot">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -19,26 +18,11 @@
     h2 { text-align: center; color: #333; }
     label { display: block; margin-top: 12px; font-weight: bold; color: #555; }
     input[type="text"], input[type="date"], input[type="file"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    
     .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; margin-top: 5px; }
-    
-    .moldura-container {
-      position: relative;
-      margin-top: 10px;
-      border: 2px dashed #25D366;
-      border-radius: 8px;
-      overflow: hidden;
-      display: none;
-      background: #eee;
-    }
+    .moldura-container { position: relative; margin-top: 10px; border: 2px dashed #25D366; border-radius: 8px; overflow: hidden; display: none; background: #eee; }
     .preview-img { width: 100%; display: block; object-fit: contain; max-height: 300px; }
-
     button { width: 100%; padding: 15px; margin-top: 20px; font-size: 16px; background: #25D366; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    
-    #area-dados-pdf { 
-      position: absolute; top: -9999px; left: -9999px; 
-      width: 600px; background: #fff; padding: 40px; 
-    }
+    #area-dados-pdf { position: absolute; top: -9999px; left: -9999px; width: 600px; background: #fff; padding: 40px; }
     #area-dados-pdf h2 { border-bottom: 2px solid #25D366; padding-bottom: 10px; }
     #area-dados-pdf p { font-size: 18px; border-bottom: 1px solid #eee; padding: 8px 0; margin: 0; }
   </style>
@@ -49,7 +33,7 @@
   <h2>Dados para Cotação</h2>
 
   <label>Nome completo</label>
-  <input type="text" id="nome" placeholder="Digite o nome do cliente" />
+  <input type="text" id="nome_cliente" placeholder="Digite o nome do cliente" />
 
   <label>Data de nascimento</label>
   <input type="date" id="nascimento" />
@@ -63,7 +47,7 @@
   <label>Endereço completo</label>
   <input type="text" id="endereco" />
 
-  <label>Número da unidade consumidora (UC)</label>
+  <label>Unidade Consumidora (UC)</label>
   <input type="text" id="uc" />
 
   <label>Potência estimada (kWp)</label>
@@ -113,6 +97,11 @@
   configurarPreview('fotoDoc', 'prevDoc', 'molduraDoc');
 
   async function gerarPDF() {
+    // 1. Definir o nome do ficheiro antes de tudo
+    const campoNome = document.getElementById('nome_cliente').value.trim();
+    const nomeFormatado = campoNome.replace(/[^a-z0-9]/gi, '_').toUpperCase();
+    const nomeFinalFicheiro = nomeFormatado ? `COTACAO_${nomeFormatado}.pdf` : "COTACAO_SOLAR_NOVO.pdf";
+
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const larguraPdf = pdf.internal.pageSize.getWidth();
@@ -120,10 +109,7 @@
     const margem = 15;
     const larguraUtil = larguraPdf - (margem * 2);
 
-    // PEGA O NOME DO CLIENTE PARA O ARQUIVO
-    const nomeCliente = document.getElementById('nome').value.trim();
-    const nomeArquivo = nomeCliente ? `Cotacao_${nomeCliente.replace(/\s+/g, '_')}.pdf` : 'Cotacao_Solar.pdf';
-
+    // --- PÁGINA 1: DADOS ---
     const divDados = document.createElement('div');
     divDados.id = 'area-dados-pdf';
     let html = `<h2>Relatório de Cotação Solar</h2>`;
@@ -132,12 +118,12 @@
         let v = document.getElementById(id).value;
         if(v) html += `<p><strong>${label}:</strong> ${v}</p>`;
     }
-    add("Nome", "nome");
+    add("Nome", "nome_cliente");
     add("Data de Nasc.", "nascimento");
     add("CPF", "cpf");
     add("RG", "rg");
     add("Endereço", "endereco");
-    add("Unidade Consumidora", "uc");
+    add("UC", "uc");
     add("Potência", "potencia");
     
     const telhado = document.querySelector('input[name="telhado"]:checked');
@@ -151,31 +137,31 @@
     pdf.addImage(imgTexto, 'JPEG', margem, margem, larguraUtil, (canvasTexto.height * larguraUtil) / canvasTexto.width);
     document.body.removeChild(divDados);
 
-    const fotoConta = document.getElementById('prevConta').src;
-    if (fotoConta.startsWith('data')) {
+    // --- PÁGINA 2: CONTA ---
+    const imgC = document.getElementById('prevConta');
+    if (imgC.src && imgC.src.startsWith('data')) {
         pdf.addPage();
-        pdf.setFontSize(14);
-        pdf.text("Foto da Conta de Energia:", margem, 15);
-        const img = document.getElementById('prevConta');
-        const proporcao = img.naturalWidth / img.naturalHeight;
-        let hFinal = larguraUtil / proporcao;
-        if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
-        pdf.addImage(fotoConta, 'JPEG', margem, 20, larguraUtil, hFinal);
+        pdf.text("Conta de Energia:", margem, 15);
+        const prop = imgC.naturalWidth / imgC.naturalHeight;
+        let h = larguraUtil / prop;
+        if (h > (alturaPdf - 40)) h = alturaPdf - 40;
+        pdf.addImage(imgC.src, 'JPEG', margem, 20, larguraUtil, h);
     }
 
-    const fotoDoc = document.getElementById('prevDoc').src;
-    if (fotoDoc.startsWith('data')) {
+    // --- PÁGINA 3: DOCUMENTO ---
+    const imgD = document.getElementById('prevDoc');
+    if (imgD.src && imgD.src.startsWith('data')) {
         pdf.addPage();
-        pdf.text("Foto do Documento de Identificação:", margem, 15);
-        const img = document.getElementById('prevDoc');
-        const proporcao = img.naturalWidth / img.naturalHeight;
-        let hFinal = larguraUtil / proporcao;
-        if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
-        pdf.addImage(fotoDoc, 'JPEG', margem, 20, larguraUtil, hFinal);
+        pdf.text("Documento de Identificação:", margem, 15);
+        const prop = imgD.naturalWidth / imgD.naturalHeight;
+        let h = larguraUtil / prop;
+        if (h > (alturaPdf - 40)) h = alturaPdf - 40;
+        pdf.addImage(imgD.src, 'JPEG', margem, 20, larguraUtil, h);
     }
 
-    pdf.save(nomeArquivo);
-    alert(`PDF "${nomeArquivo}" gerado com sucesso!`);
+    // SALVAR COM O NOME DINÂMICO
+    pdf.save(nomeFinalFicheiro);
+    alert(`Documento salvo como: ${nomeFinalFicheiro}`);
   }
 
   if ('serviceWorker' in navigator) {
