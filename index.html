@@ -22,7 +22,6 @@
     
     .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; margin-top: 5px; }
     
-    /* Moldura no Celular */
     .moldura-container {
       position: relative;
       margin-top: 10px;
@@ -36,7 +35,6 @@
 
     button { width: 100%; padding: 15px; margin-top: 20px; font-size: 16px; background: #25D366; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
     
-    /* Área invisível onde o PDF é montado antes de salvar */
     #area-dados-pdf { 
       position: absolute; top: -9999px; left: -9999px; 
       width: 600px; background: #fff; padding: 40px; 
@@ -51,7 +49,7 @@
   <h2>Dados para Cotação</h2>
 
   <label>Nome completo</label>
-  <input type="text" id="nome" />
+  <input type="text" id="nome" placeholder="Digite o nome do cliente" />
 
   <label>Data de nascimento</label>
   <input type="date" id="nascimento" />
@@ -96,7 +94,6 @@
 </div>
 
 <script>
-  // Faz as fotos aparecerem na tela ao selecionar
   function configurarPreview(inputId, imgId, molduraId) {
     const input = document.getElementById(inputId);
     input.addEventListener('change', () => {
@@ -123,7 +120,10 @@
     const margem = 15;
     const larguraUtil = larguraPdf - (margem * 2);
 
-    // --- PASSO 1: CRIAR PÁGINA DE TEXTO ---
+    // PEGA O NOME DO CLIENTE PARA O ARQUIVO
+    const nomeCliente = document.getElementById('nome').value.trim();
+    const nomeArquivo = nomeCliente ? `Cotacao_${nomeCliente.replace(/\s+/g, '_')}.pdf` : 'Cotacao_Solar.pdf';
+
     const divDados = document.createElement('div');
     divDados.id = 'area-dados-pdf';
     let html = `<h2>Relatório de Cotação Solar</h2>`;
@@ -151,40 +151,31 @@
     pdf.addImage(imgTexto, 'JPEG', margem, margem, larguraUtil, (canvasTexto.height * larguraUtil) / canvasTexto.width);
     document.body.removeChild(divDados);
 
-    // --- PASSO 2: PÁGINA DA CONTA ---
     const fotoConta = document.getElementById('prevConta').src;
     if (fotoConta.startsWith('data')) {
         pdf.addPage();
         pdf.setFontSize(14);
         pdf.text("Foto da Conta de Energia:", margem, 15);
-        
         const img = document.getElementById('prevConta');
         const proporcao = img.naturalWidth / img.naturalHeight;
         let hFinal = larguraUtil / proporcao;
-        
-        // Se a foto for muito comprida, limita para não sumir no rodapé
         if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
-        
         pdf.addImage(fotoConta, 'JPEG', margem, 20, larguraUtil, hFinal);
     }
 
-    // --- PASSO 3: PÁGINA DO DOCUMENTO ---
     const fotoDoc = document.getElementById('prevDoc').src;
     if (fotoDoc.startsWith('data')) {
         pdf.addPage();
         pdf.text("Foto do Documento de Identificação:", margem, 15);
-        
         const img = document.getElementById('prevDoc');
         const proporcao = img.naturalWidth / img.naturalHeight;
         let hFinal = larguraUtil / proporcao;
-        
         if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
-        
         pdf.addImage(fotoDoc, 'JPEG', margem, 20, larguraUtil, hFinal);
     }
 
-    pdf.save('Cotacao_Energia_Solar.pdf');
-    alert('PDF gerado! Verifique as páginas 2 e 3 para as fotos.');
+    pdf.save(nomeArquivo);
+    alert(`PDF "${nomeArquivo}" gerado com sucesso!`);
   }
 
   if ('serviceWorker' in navigator) {
