@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulário de Cotação – Energia Solar</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="SolarCot">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3022/3022215.png">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #555;
+    }
+    input[type="text"], input[type="date"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .radio-group label {
+        display: inline-block;
+        margin-right: 15px;
+        font-weight: normal;
+        margin-top: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      font-size: 16px;
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    img {
+      margin-top: 10px;
+      max-width: 100%;
+      border-radius: 4px;
+      display: none;
+    }
+    img[src] {
+      display: block;
+      border: 1px solid #ccc;
+    }
+    #area-impressao {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 595px;
+        background: #fff;
+        padding: 40px;
+        font-family: Arial, sans-serif;
+    }
+    #area-impressao h2 { margin-bottom: 30px; border-bottom: 2px solid #25D366; padding-bottom: 10px; }
+    #area-impressao p { font-size: 14px; margin-bottom: 10px; line-height: 1.5; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    #area-impressao strong { color: #333; }
+    #area-impressao img { max-width: 300px; margin-top: 20px; display: block; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="formulario">
+  <h2>Dados para Cotação de Energia Solar</h2>
+
+  <label>Nome completo</label>
+  <input type="text" id="nome" placeholder="Digite seu nome" />
+
+  <label>Data de nascimento</label>
+  <input type="date" id="nascimento" />
+
+  <label>CPF</label>
+  <input type="text" id="cpf" placeholder="000.000.000-00" />
+
+  <label>RG</label>
+  <input type="text" id="rg" />
+
+  <label>Endereço completo</label>
+  <input type="text" id="endereco" placeholder="Rua, número, cidade..." />
+
+  <label>Número da unidade consumidora</label>
+  <input type="text" id="uc" />
+
+  <label>Potência estimada do sistema (kWp)</label>
+  <input type="text" id="potencia" />
+
+  <label>Preferência de financiamento?</label>
+  <div class="radio-group">
+      <label><input type="radio" name="financiamento" value="Sim" /> Sim</label>
+      <label><input type="radio" name="financiamento" value="Não" /> Não</label>
+  </div>
+
+  <label>Tipo de telhado</label>
+  <div class="radio-group">
+      <label><input type="radio" name="telhado" value="Zinco" /> Zinco</label>
+      <label><input type="radio" name="telhado" value="Cerâmico" /> Cerâmico</label>
+      <label><input type="radio" name="telhado" value="Telhão" /> Telhão</label>
+      <label><input type="radio" name="telhado" value="Solo" /> Solo</label>
+  </div>
+
+  <label>Foto da conta de energia</label>
+  <input type="file" id="foto" accept="image/*" capture="environment" />
+  <img id="preview" />
+
+  <button onclick="gerarPDF()">Compartilhar como PDF</button>
+</div>
+
+<script>
+  // Registro do Service Worker para permitir instalação como App
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(function() {
+      console.log('Service Worker registrado com sucesso.');
+    }).catch(function(erro) {
+      console.log('Falha ao registrar o Service Worker:', erro);
+    });
+  }
+
+  const fotoInput = document.getElementById('foto');
+  const preview = document.getElementById('preview');
+
+  fotoInput.addEventListener('change', () => {
+    const file = fotoInput.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => preview.src = reader.result;
+      reader.readAsDataURL(file);
+    }
+  });
+
+  async function gerarPDF() {
+    const divPrint = document.createElement('div');
+    divPrint.id = 'area-impressao';
+    let conteudoHTML = `<h2>Solicitação de Cotação</h2>`;
+
+    function adicionarCampo(label, valor) {
+        if (valor && valor.trim() !== "") {
+            conteudoHTML += `<p><strong>${label}:</strong> ${valor}</p>`;
+        }
+    }
+
+    adicionarCampo("Nome", document.getElementById('nome').value);
+    const dataNasc = document.getElementById('nascimento').value;
+    if(dataNasc) {
+        const dataFormatada = dataNasc.split('-').reverse().join('/');
+        adicionarCampo("Data de Nascimento", dataFormatada);
+    }
+    adicionarCampo("CPF", document.getElementById('cpf').value);
+    adicionarCampo("RG", document.getElementById('rg').value);
+    adicionarCampo("Endereço", document.getElementById('endereco').value);
+    adicionarCampo("Unidade Consumidora", document.getElementById('uc').value);
+    adicionarCampo("Potência Estimada", document.getElementById('potencia').value);
+
+    const finCheck = document.querySelector('input[name="financiamento"]:checked');
+    if (finCheck) adicionarCampo("Financiamento", finCheck.value);
+
+    const telhadoCheck = document.querySelector('input[name="telhado"]:checked');
+    if (telhadoCheck) adicionarCampo("Tipo de Telhado", telhadoCheck.value);
+
+    if (preview.src && preview.src !== window.location.href) {
+        conteudoHTML += `<p><strong>Conta de Energia:</strong></p>`;
+        conteudoHTML += `<img src="${preview.src}" />`;
+    }
+
+    divPrint.innerHTML = conteudoHTML;
+    document.body.appendChild(divPrint);
+
+    try {
+        window.scrollTo(0,0); 
+        const canvas = await html2canvas(divPrint, { 
+            scale: 2,
+            backgroundColor: "#ffffff"
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const larguraPagina = pdf.internal.pageSize.getWidth();
+        const alturaImagem = (canvas.height * larguraPagina) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, larguraPagina, alturaImagem);
+        pdf.save('cotacao_solar_preenchida.pdf');
+        alert('PDF gerado com sucesso!');
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao gerar o PDF.');
+    } finally {
+        document.body.removeChild(divPrint);
+    }
+  }
+</script>
+
+</body>
+</html>

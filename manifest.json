@@ -1,0 +1,16 @@
+{
+  "short_name": "SolarCot",
+  "name": "Cotação Energia Solar",
+  "description": "Formulário de Cotação de Energia Solar",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3022/3022215.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#25D366"
+}
