@@ -22,7 +22,7 @@
     
     .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; margin-top: 5px; }
     
-    /* Estilo da Moldura na Tela do Celular */
+    /* Moldura no Celular */
     .moldura-container {
       position: relative;
       margin-top: 10px;
@@ -32,29 +32,17 @@
       display: none;
       background: #eee;
     }
-    .preview-img {
-      width: 100%;
-      display: block;
-      object-fit: contain;
-      max-height: 300px;
-    }
+    .preview-img { width: 100%; display: block; object-fit: contain; max-height: 300px; }
 
     button { width: 100%; padding: 15px; margin-top: 20px; font-size: 16px; background: #25D366; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    button:hover { opacity: 0.9; }
-
-    /* Estilo da Área de Impressão (Como sairá no PDF) */
-    #area-impressao { 
-      position: absolute; 
-      top: -9999px; 
-      left: -9999px; 
-      width: 700px; /* Largura fixa para garantir resolução no PDF */
-      background: #fff; 
-      padding: 40px; 
+    
+    /* Área invisível onde o PDF é montado antes de salvar */
+    #area-dados-pdf { 
+      position: absolute; top: -9999px; left: -9999px; 
+      width: 600px; background: #fff; padding: 40px; 
     }
-    #area-impressao h2 { border-bottom: 2px solid #25D366; padding-bottom: 10px; margin-bottom: 20px; }
-    #area-impressao p { font-size: 18px; border-bottom: 1px solid #eee; padding: 8px 0; margin: 0; }
-    .img-pdf-container { width: 100%; text-align: center; margin-top: 15px; }
-    .img-pdf { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px; }
+    #area-dados-pdf h2 { border-bottom: 2px solid #25D366; padding-bottom: 10px; }
+    #area-dados-pdf p { font-size: 18px; border-bottom: 1px solid #eee; padding: 8px 0; margin: 0; }
   </style>
 </head>
 <body>
@@ -108,18 +96,16 @@
 </div>
 
 <script>
+  // Faz as fotos aparecerem na tela ao selecionar
   function configurarPreview(inputId, imgId, molduraId) {
     const input = document.getElementById(inputId);
-    const img = document.getElementById(imgId);
-    const moldura = document.getElementById(molduraId);
-
     input.addEventListener('change', () => {
       const file = input.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          img.src = e.target.result;
-          moldura.style.display = 'block';
+          document.getElementById(imgId).src = e.target.result;
+          document.getElementById(molduraId).style.display = 'block';
         };
         reader.readAsDataURL(file);
       }
@@ -130,78 +116,75 @@
   configurarPreview('fotoDoc', 'prevDoc', 'molduraDoc');
 
   async function gerarPDF() {
-    const divPrint = document.createElement('div');
-    divPrint.id = 'area-impressao';
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const larguraPdf = pdf.internal.pageSize.getWidth();
+    const alturaPdf = pdf.internal.pageSize.getHeight();
+    const margem = 15;
+    const larguraUtil = larguraPdf - (margem * 2);
+
+    // --- PASSO 1: CRIAR PÁGINA DE TEXTO ---
+    const divDados = document.createElement('div');
+    divDados.id = 'area-dados-pdf';
+    let html = `<h2>Relatório de Cotação Solar</h2>`;
     
-    let conteudoHTML = `<h2>Relatório de Cotação Solar</h2>`;
-
-    function add(label, valor) {
-        if (valor && valor.trim() !== "") {
-            conteudoHTML += `<p><strong>${label}:</strong> ${valor}</p>`;
-        }
+    function add(label, id) {
+        let v = document.getElementById(id).value;
+        if(v) html += `<p><strong>${label}:</strong> ${v}</p>`;
     }
-
-    add("Nome", document.getElementById('nome').value);
-    add("CPF", document.getElementById('cpf').value);
-    add("RG", document.getElementById('rg').value);
-    add("Endereço", document.getElementById('endereco').value);
-    add("UC", document.getElementById('uc').value);
-    add("Potência", document.getElementById('potencia').value);
-
+    add("Nome", "nome");
+    add("Data de Nasc.", "nascimento");
+    add("CPF", "cpf");
+    add("RG", "rg");
+    add("Endereço", "endereco");
+    add("Unidade Consumidora", "uc");
+    add("Potência", "potencia");
+    
     const telhado = document.querySelector('input[name="telhado"]:checked');
-    if (telhado) add("Telhado", telhado.value);
+    if (telhado) html += `<p><strong>Telhado:</strong> ${telhado.value}</p>`;
 
-    const imgConta = document.getElementById('prevConta');
-    if (imgConta.src && imgConta.src.startsWith('data')) {
-        conteudoHTML += `<div class="img-pdf-container"><p><strong>Conta de Energia:</strong></p>`;
-        conteudoHTML += `<img src="${imgConta.src}" class="img-pdf" /></div>`;
+    divDados.innerHTML = html;
+    document.body.appendChild(divDados);
+
+    const canvasTexto = await html2canvas(divDados, { scale: 2 });
+    const imgTexto = canvasTexto.toDataURL('image/jpeg', 0.9);
+    pdf.addImage(imgTexto, 'JPEG', margem, margem, larguraUtil, (canvasTexto.height * larguraUtil) / canvasTexto.width);
+    document.body.removeChild(divDados);
+
+    // --- PASSO 2: PÁGINA DA CONTA ---
+    const fotoConta = document.getElementById('prevConta').src;
+    if (fotoConta.startsWith('data')) {
+        pdf.addPage();
+        pdf.setFontSize(14);
+        pdf.text("Foto da Conta de Energia:", margem, 15);
+        
+        const img = document.getElementById('prevConta');
+        const proporcao = img.naturalWidth / img.naturalHeight;
+        let hFinal = larguraUtil / proporcao;
+        
+        // Se a foto for muito comprida, limita para não sumir no rodapé
+        if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
+        
+        pdf.addImage(fotoConta, 'JPEG', margem, 20, larguraUtil, hFinal);
     }
 
-    const imgDoc = document.getElementById('prevDoc');
-    if (imgDoc.src && imgDoc.src.startsWith('data')) {
-        conteudoHTML += `<div class="img-pdf-container"><p><strong>Documento de Identificação:</strong></p>`;
-        conteudoHTML += `<img src="${imgDoc.src}" class="img-pdf" /></div>`;
+    // --- PASSO 3: PÁGINA DO DOCUMENTO ---
+    const fotoDoc = document.getElementById('prevDoc').src;
+    if (fotoDoc.startsWith('data')) {
+        pdf.addPage();
+        pdf.text("Foto do Documento de Identificação:", margem, 15);
+        
+        const img = document.getElementById('prevDoc');
+        const proporcao = img.naturalWidth / img.naturalHeight;
+        let hFinal = larguraUtil / proporcao;
+        
+        if (hFinal > (alturaPdf - 40)) hFinal = alturaPdf - 40;
+        
+        pdf.addImage(fotoDoc, 'JPEG', margem, 20, larguraUtil, hFinal);
     }
 
-    divPrint.innerHTML = conteudoHTML;
-    document.body.appendChild(divPrint);
-
-    try {
-        // Ocultar barras de rolagem durante a captura
-        window.scrollTo(0,0);
-        
-        const canvas = await html2canvas(divPrint, { 
-            scale: 2, 
-            useCORS: true,
-            backgroundColor: "#ffffff" 
-        });
-        
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        const larguraPdf = pdf.internal.pageSize.getWidth();
-        const alturaPdf = pdf.internal.pageSize.getHeight();
-        
-        // Margens de 10mm
-        const margem = 10;
-        const larguraUtil = larguraPdf - (margem * 2);
-        
-        // Calcula a altura proporcional da imagem capturada
-        const alturaProporcional = (canvas.height * larguraUtil) / canvas.width;
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.8);
-        
-        // Adiciona ao PDF garantindo que não ultrapasse a altura da página ou ajuste se necessário
-        pdf.addImage(imgData, 'JPEG', margem, margem, larguraUtil, alturaProporcional);
-        
-        pdf.save('cotacao_solar.pdf');
-        alert('PDF salvo com sucesso!');
-    } catch (err) {
-        console.error(err);
-        alert('Erro ao gerar PDF');
-    } finally {
-        document.body.removeChild(divPrint);
-    }
+    pdf.save('Cotacao_Energia_Solar.pdf');
+    alert('PDF gerado! Verifique as páginas 2 e 3 para as fotos.');
   }
 
   if ('serviceWorker' in navigator) {
